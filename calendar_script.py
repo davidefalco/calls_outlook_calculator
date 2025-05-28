@@ -1,7 +1,13 @@
-import os, re, sys, math
+import os, re, sys, math, requests
 from datetime import datetime
 
 DATETIME_PATTERN = "%Y%m%dT%H%M%S"
+
+def download_calendar_ics(url):
+    query_params = {"downloadformat": "ics"}
+    download = requests.get(url, query_params)
+    with open("./calendar.ics", mode="wb") as file:
+        file.write(download.content)
 
 def calculate_calls_time_from_ics(path, year, month, deletion_name, exclusions):
     exclusions_arr = []
@@ -9,6 +15,10 @@ def calculate_calls_time_from_ics(path, year, month, deletion_name, exclusions):
         exclusions_arr = exclusions.split(",")
     filtered_events = []
     filtered_events_dict = []
+
+    if ("https" in path):
+        download_calendar_ics(path)
+        path = "./calendar.ics"
 
     with open(path, encoding="utf-8") as calendar:
         calendar_content = calendar.read()
@@ -31,7 +41,8 @@ def calculate_calls_time_from_ics(path, year, month, deletion_name, exclusions):
     total_seconds = 0
     for e in filtered_events_dict:
         total_seconds += e["time_delta"].seconds
-        
+    
+    os.remove(path)
     return total_seconds
 
 def hours_and_minutes_format(calls_time_seconds):
